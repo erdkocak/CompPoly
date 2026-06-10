@@ -182,7 +182,7 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
 \begin{tikzpicture}
 \begin{axis}[
   width=0.90\linewidth,
-  height=8.5cm,
+  height=12.4cm,
   grid=both,
   major grid style={draw=LeanRule},
   minor grid style={draw=LeanRule!55},
@@ -385,9 +385,10 @@ Multiplication becomes pointwise in the evaluation domain, then the inverse tran
 
 \begin{posterblock}{Benchmark Behavior}
 \centering
+\vspace{0.8cm}
 \benchmarkPlot
 
-\vspace{-0.2cm}
+\vspace{0.6cm}
 {\small Manual KoalaBear benchmark sweep from \leaninline{tests/CompPolyTests/Univariate/NTT/Benchmark.lean}.
 Times are illustrative and machine-dependent.}
 \end{posterblock}
@@ -409,24 +410,6 @@ The precondition \leaninline{Domain.fits D p.val q.val} says that the selected N
 
 \vspace{0.45cm}
 
-\begin{posterblock}{Proof Graph Guide}
-\raggedright
-\footnotesize
-\begin{enumerate}
-\setlength{\itemsep}{0.2em}
-\setlength{\parskip}{0.2em}
-\item \texttt{fastMulImpl\_eq\_mul}: main theorem --- the NTT-based implementation equals canonical polynomial multiplication.
-\item \texttt{fastMulImpl\_correct}: the executable multiplication pipeline agrees with the specification.
-\item \texttt{fastMulSpec\_eq\_mul}: the specification computes the canonical polynomial product.
-\item \textbf{Raw layer}: array-level correctness together with trimming and canonicalization lemmas.
-\item \textbf{Forward / Inverse layer}: iterative radix-2 butterfly implementations realize the mathematical NTT and inverse NTT formulas.
-\item \textbf{Coefficient layer}: coefficient-wise correctness follows from pointwise evaluation and inversion identities.
-\item \textbf{Foundation layer}: inductive stage lemmas and root-of-unity orthogonality collapse the transform sums.
-\end{enumerate}
-\end{posterblock}
-
-\vspace{0.45cm}
-
 \begin{posterblock}{References}
 \begin{enumerate}\small
   \setlength{\itemsep}{0.22em}
@@ -441,14 +424,14 @@ The precondition \leaninline{Domain.fits D p.val q.val} says that the selected N
 \begin{columns}[T,totalwidth=\linewidth]
   \begin{column}{0.48\linewidth}
     \centering
-    \qrcode[height=5.1cm]{https://github.com/Verified-zkEVM/CompPoly/pull/174}
+    \qrcode[height=6.5cm]{https://github.com/Verified-zkEVM/CompPoly/pull/174}
 
     \vspace{0.22cm}
     \textbf{Merged PR \#174}
   \end{column}
   \begin{column}{0.48\linewidth}
     \centering
-    \qrcode[height=5.1cm]{https://github.com/Verified-zkEVM/CompPoly}
+    \qrcode[height=6.5cm]{https://github.com/Verified-zkEVM/CompPoly}
 
     \vspace{0.22cm}
     \textbf{CompPoly Repository}

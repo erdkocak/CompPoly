@@ -5,10 +5,11 @@
 \usepackage{pgfplots}
 \usepackage{qrcode}
 \usepackage{booktabs}
+\usepackage{colortbl}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{listings}
-\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc,trees}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc,trees,backgrounds}
 \pgfplotsset{compat=1.18}
 
 \definecolor{BounBlue}{RGB}{0,73,144}
@@ -17,7 +18,18 @@
 \definecolor{BounDark}{RGB}{30,38,50}
 \definecolor{BounGray}{RGB}{245,247,250}
 \definecolor{AccentGreen}{RGB}{32,120,103}
+\definecolor{ProofRootFill}{RGB}{239,249,245}
 \definecolor{AccentOrange}{RGB}{202,103,2}
+\definecolor{TagTurquoise}{RGB}{64,166,190}
+\definecolor{TagTurquoiseRule}{RGB}{50,140,164}
+\definecolor{CoeffDomainRed}{RGB}{190,72,82}
+\definecolor{CoeffDomainFill}{RGB}{255,246,247}
+\definecolor{EvalDomainGreen}{RGB}{56,145,103}
+\definecolor{EvalDomainFill}{RGB}{240,251,246}
+\definecolor{ComplexityNaiveFill}{RGB}{255,247,237}
+\definecolor{ComplexityNTTFill}{RGB}{238,248,244}
+\definecolor{ProofFamilyPurple}{RGB}{112,80,156}
+\definecolor{ProofFamilyFill}{RGB}{247,244,252}
 \definecolor{LeanKeyword}{RGB}{0,77,168}
 \definecolor{LeanType}{RGB}{38,127,153}
 \definecolor{LeanComment}{RGB}{88,118,71}
@@ -83,7 +95,9 @@
 \toprule
 \textbf{Method} & \textbf{Main Operation} & \textbf{Work} \\
 \midrule
+\rowcolor{ComplexityNaiveFill}
 Naive & sum coefficient pairs & $O(n^2)$ \\
+\rowcolor{ComplexityNTTFill}
 NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
 \bottomrule
 \end{tabular}
@@ -100,14 +114,15 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
   eval/.style={draw=AccentGreen, line width=1.15pt, rounded corners=4pt, fill=white,
     align=center, inner sep=8pt, minimum width=5.9cm, minimum height=1.42cm, font=\normalsize},
   point/.style={draw=AccentOrange, line width=1.15pt, rounded corners=4pt, fill=white,
-    align=center, inner sep=9pt, minimum width=5.9cm, minimum height=1.85cm, font=\normalsize},
+    align=center, inner sep=9pt, minimum width=5.9cm, minimum height=1.85cm, font=\small},
   product/.style={draw=BounBlue, line width=1.15pt, rounded corners=4pt, fill=BounPale,
     align=center, inner sep=9pt, minimum width=6.2cm, minimum height=1.75cm, font=\normalsize},
   stage/.style={draw=BounBlue, fill=BounBlue, text=white, line width=1pt,
-    rounded corners=3pt, align=center, font=\bfseries\normalsize,
+    rounded corners=3pt, align=center, font=\bfseries\footnotesize,
     minimum width=2.1cm, minimum height=0.88cm},
-  domainlabel/.style={font=\bfseries\large},
-  arrow/.style={-{Latex[length=3.5mm]}, line width=1.12pt, draw=BounBlue}
+  domainlabel/.style={font=\bfseries\small},
+  arrow/.style={-{Latex[length=3.5mm]}, line width=1.12pt, draw=BounBlue},
+  transfer/.style={densely dashed, line width=1.25pt, draw=BounBlue!65, opacity=0.75}
 ]
 
 % --- Left side: Forward Transforms ---
@@ -126,15 +141,42 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
   $\widehat c_i=\widehat p_i\widehat q_i$};
 
 % --- Right side: Inverse Transform ---
-\node[stage, minimum width=3.0cm, right=of prodValues] (intt) {inverse\\NTT};
+\node[stage, minimum width=3.0cm, right=of prodValues] (intt) {iNTT};
 \node[product, right=of intt] (product) {%
   $c(x)=p(x)q(x)$\\[0.3em]
   $c_k=\sum_{i+j=k} a_i b_j$};
 
 % --- Headers ---
-\node[domainlabel, text=BounBlue, above=1.2cm of pcoeff] (label1) {coefficient inputs};
-\node[domainlabel, text=AccentGreen] at (label1 -| phat) {evaluation domain};
-\node[domainlabel, text=BounBlue] at (label1 -| product) {coefficient output};
+\coordinate (forwardBoundary) at (pntt.center);
+\coordinate (inverseBoundary) at (intt.center);
+\coordinate (leftCoeffEdge) at ($(pcoeff.west)+(-0.55cm,0)$);
+\coordinate (rightCoeffEdge) at ($(product.east)+(0.55cm,0)$);
+\coordinate (domainLabelY) at ($(pcoeff.north)+(0,1.35cm)$);
+\coordinate (leftCoeffLabelCenter) at ($(leftCoeffEdge)!0.5!(forwardBoundary)$);
+\coordinate (evalLabelCenter) at ($(forwardBoundary)!0.5!(inverseBoundary)$);
+\coordinate (rightCoeffLabelCenter) at ($(inverseBoundary)!0.5!(rightCoeffEdge)$);
+
+\node[domainlabel, text=CoeffDomainRed] at (leftCoeffLabelCenter |- domainLabelY) {Coefficient Domain};
+\node[domainlabel, text=EvalDomainGreen] at (evalLabelCenter |- domainLabelY) {Evaluation Domain};
+\node[domainlabel, text=CoeffDomainRed] at (rightCoeffLabelCenter |- domainLabelY) {Coefficient Domain};
+
+\coordinate (domainTop) at ($(domainLabelY)+(0,0.57cm)$);
+\coordinate (domainBottom) at ($(qcoeff.south)+(0,-0.52cm)$);
+
+\begin{scope}[on background layer]
+  \fill[CoeffDomainFill, rounded corners=5pt]
+    (leftCoeffEdge |- domainTop)
+    rectangle
+    (forwardBoundary |- domainBottom);
+  \fill[EvalDomainFill]
+    (forwardBoundary |- domainTop)
+    rectangle
+    (inverseBoundary |- domainBottom);
+  \fill[CoeffDomainFill, rounded corners=5pt]
+    (inverseBoundary |- domainTop)
+    rectangle
+    (rightCoeffEdge |- domainBottom);
+\end{scope}
 
 % --- Arrows ---
 \draw[arrow] (pcoeff) -- (pntt);
@@ -147,6 +189,9 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
 
 \draw[arrow] (prodValues) -- (intt);
 \draw[arrow] (intt) -- (product);
+
+\draw[transfer] (forwardBoundary |- domainTop) -- (forwardBoundary |- domainBottom);
+\draw[transfer] (inverseBoundary |- domainTop) -- (inverseBoundary |- domainBottom);
 \end{tikzpicture}%
 }%
 }
@@ -155,9 +200,10 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
 \resizebox{0.93\linewidth}{!}{%
 \begin{tikzpicture}[
   node distance=0.8cm,
-  main/.style={draw=BounBlue, line width=1.1pt, rounded corners=4pt, fill=BounPale,
+  main/.style={draw=LeanRule!80!BounDark, line width=1.1pt, rounded corners=4pt, fill=BounGray,
     align=center, minimum width=12.5cm, minimum height=1.55cm},
-  tag/.style={draw=none, rounded corners=3pt, fill=BounBlue, text=white,
+  tag/.style={draw=TagTurquoiseRule, line width=0.6pt,
+    rounded corners=3pt, fill=TagTurquoise, text=white,
     font=\bfseries\small, align=center, minimum width=3.0cm, minimum height=0.9cm},
   arrow/.style={-{Latex[length=3mm]}, line width=1pt, draw=BounBlue}
 ]
@@ -227,20 +273,21 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
 \begin{tikzpicture}[
   arr/.style={-{Latex[length=2.8mm]}, line width=0.95pt, draw=BounBlue},
   root/.style={draw=AccentGreen, line width=1.5pt, rounded corners=4pt,
-    fill=white, align=center, inner sep=5pt,
-    font=\ttfamily\bfseries\small, text=AccentGreen},
+    fill=ProofRootFill, align=center, inner xsep=13pt, inner ysep=9pt,
+    minimum width=8.8cm, minimum height=1.18cm,
+    font=\ttfamily\bfseries\large, text=AccentGreen},
   branch/.style={draw=BounBlue, line width=1.0pt, rounded corners=3pt,
     fill=BounPale, align=center, inner sep=4.5pt,
     font=\ttfamily\small, text=BounDark},
   branchsm/.style={draw=BounBlue, line width=1.0pt, rounded corners=3pt,
     fill=BounPale, align=center, inner sep=3.5pt,
     font=\ttfamily\footnotesize, text=BounDark},
-  group/.style={draw=BounBlue, line width=0.85pt, rounded corners=3pt,
-    fill=BounGray, align=center, inner sep=4.5pt,
-    font=\ttfamily\small, text=BounDark, densely dashed},
-  groupsm/.style={draw=BounBlue, line width=0.85pt, rounded corners=3pt,
-    fill=BounGray, align=center, inner sep=3.5pt,
-    font=\ttfamily\footnotesize, text=BounDark, densely dashed},
+  group/.style={draw=ProofFamilyPurple, line width=1.0pt, rounded corners=3pt,
+    fill=ProofFamilyFill, align=center, inner sep=4.5pt,
+    font=\ttfamily\small, text=BounDark, dashed},
+  groupsm/.style={draw=ProofFamilyPurple, line width=1.0pt, rounded corners=3pt,
+    fill=ProofFamilyFill, align=center, inner sep=3.5pt,
+    font=\ttfamily\footnotesize, text=BounDark, dashed},
   leafsm/.style={draw=AccentOrange!80, line width=0.85pt, rounded corners=3pt,
     fill=white, align=center, inner sep=3.5pt,
     font=\ttfamily\footnotesize, text=BounDark},
@@ -260,21 +307,21 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
 %% ── Row 3 ────────────────────────────────────────────────────────────────────
 \node[branch] (fwdcorr) at (-25.5,-13.0) {\shortstack{Forward.forwardImpl\\\_correct}};
 \node[branch] (invcorr) at (-2,-13.0) {\shortstack{Inverse.inverseImpl\\\_correct}};
-\node[group] (trimhelp) at (8,-13.0) {\shortstack{[Raw.Trim\\helpers]}};
+\node[group] (trimhelp) at (8,-13.0) {\shortstack{trim/canonicality\\lemmas}};
 \node[branch] (fmscoeff) at (23,-13.0) {\shortstack{fastMulSpec\_coeff}};
 
 %% ── Row 4 ────────────────────────────────────────────────────────────────────
 \node[leafsm] (runstages) at (-32,-19.0) {\shortstack{runStages\_bitRevPermute\\\_eq\_forwardStageSpec}};
 \node[branchsm] (fwdfinal) at (-19,-19.0) {\shortstack{forwardStageSpec\_final\\\_eq\_forwardSpec}};
-\node[leafsm] (seeleft) at (-8,-19.0) {\shortstack{Forward.forwardImpl\_correct\\{[\normalfont see left]}}};
+\node[leafsm] (seeleft) at (-8,-19.0) {\shortstack{Forward.forwardImpl\_correct\\{\normalfont\scriptsize for inverse domain}}};
 \node[leafsm] (normalize) at (4,-19.0) {\shortstack{normalize\_forwardSpec\\\_inverse\_eq\_inverseSpec}};
-\node[groupsm] (zerobnd) at (14,-19.0) {\shortstack{[zero-coeff\\boundary cases]}};
-\node[groupsm] (pointwise) at (23,-19.0) {\shortstack{[pointwise eval\\correctness]}};
+\node[groupsm] (zerobnd) at (14,-19.0) {\shortstack{zero-coeff\\boundary cases}};
+\node[groupsm] (pointwise) at (23,-19.0) {\shortstack{pointwise eval\\correctness}};
 \node[branchsm] (invcoeff) at (33,-19.0) {\shortstack{inverse\_forwardSpec\\\_coeff\_of\_lt}};
 
 %% ── Row 5 ────────────────────────────────────────────────────────────────────
-\node[groupsm] (stagechain) at (-19,-24.0) {\shortstack{[stage chain lemmas]}};
-\node[groupsm] (kernel) at (33,-24.0) {\shortstack{[kernel orthogonality\\arithmetic]}};
+\node[groupsm] (stagechain) at (-19,-24.0) {\shortstack{stage equivalence\\lemmas}};
+\node[groupsm] (kernel) at (33,-24.0) {\shortstack{root-of-unity\\orthogonality}};
 
 %% ── Edges ─────────────────────────────────────────────────────────────────────
 \draw[arr] (root)      -- (implcorr);
@@ -340,7 +387,8 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
 \begin{posterblock}{Motivation}
 Polynomial multiplication is a core component of many cryptographic protocols, especially proof systems.
 Evaluation and interpolation routines, polynomial commitments, and quotient-polynomial constructions all multiply polynomials repeatedly.
-With the usual schoolbook algorithm, this is quadratic work. The NTT avoids direct convolution by evaluating both inputs on a root-of-unity domain, multiplying the values pointwise, and then transforming back.
+With the usual schoolbook algorithm, this is quadratic work.
+The NTT avoids direct convolution by evaluating both inputs on a root-of-unity domain, multiplying the values pointwise, and then transforming back, which is quasilinear work.
 Our Lean proof connects this executable pipeline to the algebraic specification, showing that the fast path is correct.
 \vspace{0.9cm}
 \complexityTable
@@ -383,6 +431,7 @@ Multiplication becomes pointwise in the evaluation domain, then the inverse tran
 
 \begin{column}{0.31\paperwidth}
 
+\vspace*{-0.48cm}
 \begin{posterblock}{Benchmark Behavior}
 \centering
 \vspace{0.8cm}
@@ -393,10 +442,15 @@ Multiplication becomes pointwise in the evaluation domain, then the inverse tran
 Times are illustrative and machine-dependent.}
 \end{posterblock}
 
-\vspace{0.45cm}
+\vspace{0.87cm}
 
 \begin{posterblock}{Main Theorem}
-\begin{lstlisting}[basicstyle=\ttfamily\normalsize]
+\begin{lstlisting}[
+  basicstyle=\ttfamily\normalsize,
+  backgroundcolor=\color{ProofRootFill},
+  rulecolor=\color{AccentGreen},
+  framerule=1.0pt
+]
 theorem fastMulImpl_eq_mul
     (D : Domain R)
     (p q : CPolynomial R)
@@ -408,7 +462,7 @@ This is the public correctness statement for the multiplication implementation.
 The precondition \leaninline{Domain.fits D p.val q.val} says that the selected NTT domain is large enough for the ordinary convolution, so the transform pipeline has no cyclic wraparound.
 \end{posterblock}
 
-\vspace{0.45cm}
+\vspace{3.25cm}
 
 \begin{posterblock}{References}
 \begin{enumerate}\small
@@ -419,6 +473,8 @@ The precondition \leaninline{Domain.fits D p.val q.val} says that the selected N
   \item Truth Research ZK, ``AMO-Lean'', 2026. \texttt{github.com/lambdaclass/amo-lean}.
 \end{enumerate}
 \end{posterblock}
+
+\vspace{0.7cm}
 
 \begin{posterblock}{Code and Repository}
 \begin{columns}[T,totalwidth=\linewidth]

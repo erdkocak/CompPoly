@@ -34,7 +34,7 @@ Department of Computer Engineering, Bogazici University
 Logos:
 
 - Bogazici University logo on the left.
-- CompPoly / Verified zkEVM logo or text mark on the right.
+- Verified zkEVM GitHub organization logo on the right.
 
 The title should dominate the header. Logos should be visible but secondary.
 

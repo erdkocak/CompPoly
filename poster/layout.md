@@ -20,7 +20,7 @@ The poster should not read like a generated summary. It should feel like a compa
 Poster title:
 
 ```text
-Formal Verification of NTT-Based Fast Polynomial Multiplication in Lean
+Formal Verification of Number-Theoretic Transform in Lean
 ```
 
 Header content:
@@ -82,9 +82,19 @@ domain-changing pipeline, not as a cramped vertical stack.
 Sections:
 
 1. **Motivation**
-   - Polynomial multiplication is a core operation in computable algebra and proof systems.
-   - Naive coefficient convolution is quadratic.
-   - The project implements a faster multiplication path and proves it correct.
+   - Say that polynomial multiplication is a core component of cryptographic
+     protocols, especially proof systems.
+   - Mention concrete places it appears: evaluation/interpolation routines,
+     polynomial commitments, and quotient-polynomial constructions.
+   - Explain that naive multiplication is quadratic, while the NTT avoids
+     direct convolution by evaluating on roots of unity, multiplying pointwise,
+     and transforming back.
+   - State the verification contribution directly: the Lean proof connects the
+     executable pipeline to the algebraic specification and shows that the fast
+     path is correct.
+   - Add a compact, booktabs-style comparison below the text:
+     naive coefficient-pair summation is `O(n^2)`, while the NTT route is
+     `O(n log n)`.
 
 2. **NTT Multiplication**
    Use a mathematical domain-changing diagram that spans the first two columns.

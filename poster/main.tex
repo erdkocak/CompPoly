@@ -93,6 +93,7 @@ NTT multiplication & transform, pointwise product, inverse & $O(n\log n)$ \\
 \newcommand{\nttDiagram}{%
 \resizebox{0.985\linewidth}{!}{%
 \begin{tikzpicture}[
+  node distance=1.3cm and 1.2cm, % Defines standard vertical and horizontal gaps
   coeff/.style={draw=BounBlue, line width=1.15pt, rounded corners=4pt, fill=BounPale,
     align=center, inner sep=8pt, minimum width=5.7cm, minimum height=1.42cm, font=\normalsize},
   eval/.style={draw=AccentGreen, line width=1.15pt, rounded corners=4pt, fill=white,
@@ -107,35 +108,51 @@ NTT multiplication & transform, pointwise product, inverse & $O(n\log n)$ \\
   domainlabel/.style={font=\bfseries\large},
   arrow/.style={-{Latex[length=3.5mm]}, line width=1.12pt, draw=BounBlue}
 ]
-\node[domainlabel, text=BounBlue] at (-16.8,4.35) {coefficient inputs};
-\node[domainlabel, text=AccentGreen] at (-3.5,4.35) {evaluation domain};
-\node[domainlabel, text=BounBlue] at (17.0,4.35) {coefficient output};
 
-\node[coeff] (pcoeff) at (-16.9,2.65) {$p(x)=a_0+a_1x+\cdots$};
-\node[stage] (pntt) at (-10.2,2.65) {NTT};
-\node[eval] (phat) at (-3.5,2.65) {$\widehat p=[p(\omega^i)]_{i<n}$};
+% --- Left side: Forward Transforms ---
+% Row 1
+\node[coeff] (pcoeff) {$p(x)=a_0+a_1x+\cdots$};
+\node[stage, right=of pcoeff] (pntt) {NTT};
+\node[eval, right=of pntt] (phat) {$\widehat p=[p(\omega^i)]_{i<n}$};
 
-\node[coeff] (qcoeff) at (-16.9,-0.75) {$q(x)=b_0+b_1x+\cdots$};
-\node[stage] (qntt) at (-10.2,-0.75) {NTT};
-\node[eval] (qhat) at (-3.5,-0.75) {$\widehat q=[q(\omega^i)]_{i<n}$};
+% Row 2 (Positioned neatly below Row 1)
+\node[coeff, below=of pcoeff] (qcoeff) {$q(x)=b_0+b_1x+\cdots$};
+\node[stage, right=of qcoeff] (qntt) {NTT};
+\node[eval, right=of qntt] (qhat) {$\widehat q=[q(\omega^i)]_{i<n}$};
 
-\node[point] (prodValues) at (5.0,0.95) {%
+% --- Middle: Pointwise Product ---
+% Anchor to the exact vertical midpoint of phat and qhat
+\path ($(phat.east)!0.5!(qhat.east)$) ++(1.8cm, 0) node[point, anchor=west] (prodValues) {%
   \textbf{pointwise product}\\[0.15em]
   $\widehat c=\widehat p\odot\widehat q$\\[-0.05em]
   $\widehat c_i=\widehat p_i\widehat q_i$};
-\node[stage, minimum width=3.0cm] (intt) at (11.1,0.95) {inverse\\NTT};
-\node[product] (product) at (17.8,0.95) {%
+
+% --- Right side: Inverse Transform ---
+\node[stage, minimum width=3.0cm, right=of prodValues] (intt) {inverse\\NTT};
+\node[product, right=of intt] (product) {%
   $c(x)=p(x)q(x)$\\[0.3em]
   $c_k=\sum_{i+j=k} a_i b_j$};
 
-\draw[arrow] (pcoeff.east) -- (pntt.west);
-\draw[arrow] (pntt.east) -- (phat.west);
-\draw[arrow] (qcoeff.east) -- (qntt.west);
-\draw[arrow] (qntt.east) -- (qhat.west);
-\draw[arrow] (phat.east) -- (prodValues.north west);
-\draw[arrow] (qhat.east) -- (prodValues.south west);
-\draw[arrow] (prodValues.east) -- (intt.west);
-\draw[arrow] (intt.east) -- (product.west);
+% --- Headers ---
+% Use coordinate projection (A -| B) to perfectly align horizontally with the nodes 
+% and vertically with the first label.
+\node[domainlabel, text=BounBlue, above=1.2cm of pcoeff] (label1) {coefficient inputs};
+\node[domainlabel, text=AccentGreen] at (label1 -| phat) {evaluation domain};
+\node[domainlabel, text=BounBlue] at (label1 -| product) {coefficient output};
+
+% --- Arrows ---
+\draw[arrow] (pcoeff) -- (pntt);
+\draw[arrow] (pntt) -- (phat);
+\draw[arrow] (qcoeff) -- (qntt);
+\draw[arrow] (qntt) -- (qhat);
+
+% Cleanly route arrows to the upper and lower halves of the product node
+\draw[arrow] (phat.east) -- ([yshift=0.4cm]prodValues.west);
+\draw[arrow] (qhat.east) -- ([yshift=-0.4cm]prodValues.west);
+
+\draw[arrow] (prodValues) -- (intt);
+\draw[arrow] (intt) -- (product);
+
 \end{tikzpicture}%
 }%
 }

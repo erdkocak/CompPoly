@@ -8,7 +8,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{listings}
-\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc,trees}
 \pgfplotsset{compat=1.18}
 
 \definecolor{BounBlue}{RGB}{0,73,144}
@@ -94,7 +94,7 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
 \newcommand{\nttDiagram}{%
 \resizebox{0.985\linewidth}{!}{%
 \begin{tikzpicture}[
-  node distance=1.3cm and 1.2cm, % Defines standard vertical and horizontal gaps
+  node distance=1.3cm and 1.2cm, 
   coeff/.style={draw=BounBlue, line width=1.15pt, rounded corners=4pt, fill=BounPale,
     align=center, inner sep=8pt, minimum width=5.7cm, minimum height=1.42cm, font=\normalsize},
   eval/.style={draw=AccentGreen, line width=1.15pt, rounded corners=4pt, fill=white,
@@ -111,18 +111,15 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
 ]
 
 % --- Left side: Forward Transforms ---
-% Row 1
 \node[coeff] (pcoeff) {$p(x)=a_0+a_1x+\cdots$};
 \node[stage, right=of pcoeff] (pntt) {NTT};
 \node[eval, right=of pntt] (phat) {$\widehat p=[p(\omega^i)]_{i<n}$};
 
-% Row 2 (Positioned neatly below Row 1)
 \node[coeff, below=of pcoeff] (qcoeff) {$q(x)=b_0+b_1x+\cdots$};
 \node[stage, right=of qcoeff] (qntt) {NTT};
 \node[eval, right=of qntt] (qhat) {$\widehat q=[q(\omega^i)]_{i<n}$};
 
 % --- Middle: Pointwise Product ---
-% Anchor to the exact vertical midpoint of phat and qhat
 \path ($(phat.east)!0.5!(qhat.east)$) ++(1.8cm, 0) node[point, anchor=west] (prodValues) {%
   \textbf{pointwise product}\\[0.15em]
   $\widehat c=\widehat p\odot\widehat q$\\[-0.05em]
@@ -135,8 +132,6 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
   $c_k=\sum_{i+j=k} a_i b_j$};
 
 % --- Headers ---
-% Use coordinate projection (A -| B) to perfectly align horizontally with the nodes 
-% and vertically with the first label.
 \node[domainlabel, text=BounBlue, above=1.2cm of pcoeff] (label1) {coefficient inputs};
 \node[domainlabel, text=AccentGreen] at (label1 -| phat) {evaluation domain};
 \node[domainlabel, text=BounBlue] at (label1 -| product) {coefficient output};
@@ -147,13 +142,11 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
 \draw[arrow] (qcoeff) -- (qntt);
 \draw[arrow] (qntt) -- (qhat);
 
-% Cleanly route arrows to the upper and lower halves of the product node
 \draw[arrow] (phat.east) -- ([yshift=0.4cm]prodValues.west);
 \draw[arrow] (qhat.east) -- ([yshift=-0.4cm]prodValues.west);
 
 \draw[arrow] (prodValues) -- (intt);
 \draw[arrow] (intt) -- (product);
-
 \end{tikzpicture}%
 }%
 }
@@ -172,10 +165,12 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
 \node[main, below=of domain] (transform) {\textbf{Forward / Inverse Transform}\\iterative radix-2 butterfly implementation};
 \node[main, below=of transform] (pipeline) {\textbf{FastMul.Raw}\\forward transform, pointwise multiplication, inverse transform};
 \node[main, below=of pipeline] (api) {\textbf{FastMul}\\canonical \leaninline{CPolynomial} result};
+
 \node[tag, left=0.55cm of domain] {parameters};
 \node[tag, left=0.55cm of transform] {algorithm};
 \node[tag, left=0.55cm of pipeline] {pipeline};
 \node[tag, left=0.55cm of api] {public API};
+
 \draw[arrow] (domain) -- (transform);
 \draw[arrow] (transform) -- (pipeline);
 \draw[arrow] (pipeline) -- (api);
@@ -230,34 +225,79 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
 \newcommand{\proofLadder}{%
 \resizebox{0.98\linewidth}{!}{%
 \begin{tikzpicture}[
-  node distance=0.72cm,
-  layer/.style={draw=BounBlue, line width=1.05pt, rounded corners=4pt, fill=BounPale,
-    align=left, text width=20.5cm, inner sep=7pt, minimum height=1.2cm, font=\small},
-  final/.style={draw=AccentGreen, line width=1.3pt, rounded corners=4pt, fill=white,
-    align=left, text width=20.5cm, inner sep=7pt, minimum height=1.2cm, font=\small},
-  tag/.style={draw=none, fill=BounBlue, text=white, rounded corners=3pt,
-    font=\bfseries\scriptsize, align=center, text width=4.2cm, minimum height=0.78cm},
-  arrow/.style={-{Latex[length=3.2mm]}, line width=1.05pt, draw=BounBlue}
+  arr/.style={-{Latex[length=2.8mm]}, line width=0.95pt, draw=BounBlue},
+  root/.style={draw=AccentGreen, line width=1.5pt, rounded corners=4pt,
+    fill=white, align=center, inner sep=5pt,
+    font=\ttfamily\bfseries\small, text=AccentGreen},
+  branch/.style={draw=BounBlue, line width=1.0pt, rounded corners=3pt,
+    fill=BounPale, align=center, inner sep=4.5pt,
+    font=\ttfamily\small, text=BounDark},
+  branchsm/.style={draw=BounBlue, line width=1.0pt, rounded corners=3pt,
+    fill=BounPale, align=center, inner sep=3.5pt,
+    font=\ttfamily\footnotesize, text=BounDark},
+  group/.style={draw=BounBlue, line width=0.85pt, rounded corners=3pt,
+    fill=BounGray, align=center, inner sep=4.5pt,
+    font=\ttfamily\small, text=BounDark, densely dashed},
+  groupsm/.style={draw=BounBlue, line width=0.85pt, rounded corners=3pt,
+    fill=BounGray, align=center, inner sep=3.5pt,
+    font=\ttfamily\footnotesize, text=BounDark, densely dashed},
+  leafsm/.style={draw=AccentOrange!80, line width=0.85pt, rounded corners=3pt,
+    fill=white, align=center, inner sep=3.5pt,
+    font=\ttfamily\footnotesize, text=BounDark},
 ]
-\node[layer] (loops) {\textbf{Executable loops}\\bit reversal and butterfly stages over arrays};
-\node[layer, below=of loops] (impl) {\textbf{Implementation refinement}\\\leaninline{forwardImpl\_correct} and \leaninline{inverseImpl\_correct}};
-\node[layer, below=of impl] (spec) {\textbf{Direct NTT specifications}\\root-of-unity summation formulas for forward and inverse transforms};
-\node[layer, below=of spec] (eval) {\textbf{Evaluation-domain algebra}\\pointwise products match evaluation of $p(x)q(x)$};
-\node[layer, below=of eval] (fit) {\textbf{No wraparound under \leaninline{Domain.fits}}\\the chosen domain is large enough for the convolution length};
-\node[final, below=of fit] (result) {\textbf{Public theorem}\\\leaninline{fastMulImpl\_eq\_mul}: canonical fast multiplication equals $p*q$};
 
-\node[tag, left=0.5cm of loops] {code};
-\node[tag, left=0.5cm of impl] {refinement};
-\node[tag, left=0.5cm of spec] {spec};
-\node[tag, left=0.5cm of eval] {algebra};
-\node[tag, left=0.5cm of fit] {shape};
-\node[tag, left=0.5cm of result, fill=AccentGreen] {result};
+%% ── Row 0: root ──────────────────────────────────────────────────────────────
+\node[root] (root) at (0,0) {\shortstack{fastMulImpl\_eq\_mul}};
 
-\draw[arrow] (loops) -- (impl);
-\draw[arrow] (impl) -- (spec);
-\draw[arrow] (spec) -- (eval);
-\draw[arrow] (eval) -- (fit);
-\draw[arrow] (fit) -- (result);
+%% ── Row 1 ────────────────────────────────────────────────────────────────────
+\node[branch] (implcorr) at (-14,-4.0) {\shortstack{fastMulImpl\_correct}};
+\node[branch] (speceqmul) at (15.5,-4.0) {\shortstack{fastMulSpec\_eq\_mul}};
+
+%% ── Row 2 ────────────────────────────────────────────────────────────────────
+\node[branch] (rawimpl) at (-14,-8.0) {\shortstack{Raw.fastMulImpl\_correct}};
+\node[branch] (rawtrim) at (15.5,-8.0) {\shortstack{Raw.fastMulSpec\\\_trim\_eq\_mul}};
+
+%% ── Row 3 ────────────────────────────────────────────────────────────────────
+\node[branch] (fwdcorr) at (-25.5,-13.0) {\shortstack{Forward.forwardImpl\\\_correct}};
+\node[branch] (invcorr) at (-2,-13.0) {\shortstack{Inverse.inverseImpl\\\_correct}};
+\node[group] (trimhelp) at (8,-13.0) {\shortstack{[Raw.Trim\\helpers]}};
+\node[branch] (fmscoeff) at (23,-13.0) {\shortstack{fastMulSpec\_coeff}};
+
+%% ── Row 4 ────────────────────────────────────────────────────────────────────
+\node[leafsm] (runstages) at (-32,-19.0) {\shortstack{runStages\_bitRevPermute\\\_eq\_forwardStageSpec}};
+\node[branchsm] (fwdfinal) at (-19,-19.0) {\shortstack{forwardStageSpec\_final\\\_eq\_forwardSpec}};
+\node[leafsm] (seeleft) at (-8,-19.0) {\shortstack{Forward.forwardImpl\_correct\\{[\normalfont see left]}}};
+\node[leafsm] (normalize) at (4,-19.0) {\shortstack{normalize\_forwardSpec\\\_inverse\_eq\_inverseSpec}};
+\node[groupsm] (zerobnd) at (14,-19.0) {\shortstack{[zero-coeff\\boundary cases]}};
+\node[groupsm] (pointwise) at (23,-19.0) {\shortstack{[pointwise eval\\correctness]}};
+\node[branchsm] (invcoeff) at (33,-19.0) {\shortstack{inverse\_forwardSpec\\\_coeff\_of\_lt}};
+
+%% ── Row 5 ────────────────────────────────────────────────────────────────────
+\node[groupsm] (stagechain) at (-19,-24.0) {\shortstack{[stage chain lemmas]}};
+\node[groupsm] (kernel) at (33,-24.0) {\shortstack{[kernel orthogonality\\arithmetic]}};
+
+%% ── Edges ─────────────────────────────────────────────────────────────────────
+\draw[arr] (root)      -- (implcorr);
+\draw[arr] (root)      -- (speceqmul);
+
+\draw[arr] (implcorr)  -- (rawimpl);
+\draw[arr] (speceqmul) -- (rawtrim);
+\draw[arr] (rawimpl)   -- (fwdcorr);
+\draw[arr] (rawimpl)   -- (invcorr);
+\draw[arr] (rawtrim)   -- (trimhelp);
+\draw[arr] (rawtrim)   -- (fmscoeff);
+
+\draw[arr] (fwdcorr)   -- (runstages);
+\draw[arr] (fwdcorr)   -- (fwdfinal);
+\draw[arr] (invcorr)   -- (seeleft);
+\draw[arr] (invcorr)   -- (normalize);
+
+\draw[arr] (fmscoeff)  -- (zerobnd);
+\draw[arr] (fmscoeff)  -- (pointwise);
+\draw[arr] (fmscoeff)  -- (invcoeff);
+
+\draw[arr] (fwdfinal)  -- (stagechain);
+\draw[arr] (invcoeff)  -- (kernel);
 \end{tikzpicture}%
 }%
 }
@@ -298,8 +338,10 @@ NTT & transform, pointwise multiply, transform back & $O(n\log n)$ \\
 \begin{column}{0.49\linewidth}
 
 \begin{posterblock}{Motivation}
-Polynomial multiplication is a core component of many cryptographic protocols, especially proof systems. Evaluation and interpolation routines, polynomial commitments, and quotient-polynomial constructions all multiply polynomials repeatedly. With the usual schoolbook algorithm, this is quadratic work. The NTT avoids direct convolution by evaluating both inputs on a root-of-unity domain, multiplying the values pointwise, and then transforming back. Our Lean proof connects this executable pipeline to the algebraic specification, showing that the fast path is correct.
-
+Polynomial multiplication is a core component of many cryptographic protocols, especially proof systems.
+Evaluation and interpolation routines, polynomial commitments, and quotient-polynomial constructions all multiply polynomials repeatedly.
+With the usual schoolbook algorithm, this is quadratic work. The NTT avoids direct convolution by evaluating both inputs on a root-of-unity domain, multiplying the values pointwise, and then transforming back.
+Our Lean proof connects this executable pipeline to the algebraic specification, showing that the fast path is correct.
 \vspace{0.9cm}
 \complexityTable
 \end{posterblock}
@@ -325,24 +367,32 @@ The public operation is small; most of the work is in connecting executable arra
 \nttDiagram
 
 \vspace{0.55em}
-{\large The transform evaluates at powers of a root of unity. Multiplication becomes pointwise in the evaluation domain, then the inverse transform returns the coefficient representation.}
+{\large The transform evaluates at powers of a root of unity.
+Multiplication becomes pointwise in the evaluation domain, then the inverse transform returns the coefficient representation.}
 \end{posterblock}
 
 \vspace{0.45cm}
 
-\begin{columns}[T,totalwidth=\linewidth]
-\begin{column}{0.49\linewidth}
+% We maximize space on the left column to host your wide, detailed proof tree architecture
+\begin{posterblock}{Proof Architecture}
+\centering
+\proofLadder
+\end{posterblock}
+
+\end{column}
+
+\begin{column}{0.31\paperwidth}
 
 \begin{posterblock}{Benchmark Behavior}
 \centering
 \benchmarkPlot
 
 \vspace{-0.2cm}
-{\small Manual KoalaBear benchmark sweep from \leaninline{tests/CompPolyTests/Univariate/NTT/Benchmark.lean}. Times are illustrative and machine-dependent.}
+{\small Manual KoalaBear benchmark sweep from \leaninline{tests/CompPolyTests/Univariate/NTT/Benchmark.lean}.
+Times are illustrative and machine-dependent.}
 \end{posterblock}
 
-\end{column}
-\begin{column}{0.49\linewidth}
+\vspace{0.45cm}
 
 \begin{posterblock}{Main Theorem}
 \begin{lstlisting}[basicstyle=\ttfamily\normalsize]
@@ -353,22 +403,29 @@ theorem fastMulImpl_eq_mul
     fastMulImpl D p q = p * q
 \end{lstlisting}
 
-This is the public correctness statement for the multiplication implementation. The precondition
-\leaninline{Domain.fits D p.val q.val} says that the selected NTT domain is large enough for the
-ordinary convolution, so the transform pipeline has no cyclic wraparound.
+This is the public correctness statement for the multiplication implementation.
+The precondition \leaninline{Domain.fits D p.val q.val} says that the selected NTT domain is large enough for the ordinary convolution, so the transform pipeline has no cyclic wraparound.
 \end{posterblock}
 
-\end{column}
-\end{columns}
+\vspace{0.45cm}
 
-\end{column}
-
-\begin{column}{0.31\paperwidth}
-
-\begin{posterblock}{Proof Architecture}
-\centering
-\proofLadder
+\begin{posterblock}{Proof Graph Guide}
+\raggedright
+\footnotesize
+\begin{enumerate}
+\setlength{\itemsep}{0.2em}
+\setlength{\parskip}{0.2em}
+\item \texttt{fastMulImpl\_eq\_mul}: main theorem --- the NTT-based implementation equals canonical polynomial multiplication.
+\item \texttt{fastMulImpl\_correct}: the executable multiplication pipeline agrees with the specification.
+\item \texttt{fastMulSpec\_eq\_mul}: the specification computes the canonical polynomial product.
+\item \textbf{Raw layer}: array-level correctness together with trimming and canonicalization lemmas.
+\item \textbf{Forward / Inverse layer}: iterative radix-2 butterfly implementations realize the mathematical NTT and inverse NTT formulas.
+\item \textbf{Coefficient layer}: coefficient-wise correctness follows from pointwise evaluation and inversion identities.
+\item \textbf{Foundation layer}: inductive stage lemmas and root-of-unity orthogonality collapse the transform sums.
+\end{enumerate}
 \end{posterblock}
+
+\vspace{0.45cm}
 
 \begin{posterblock}{References}
 \begin{enumerate}\small

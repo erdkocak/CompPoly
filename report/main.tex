@@ -96,8 +96,6 @@ The primary solution components are separated into structural Lean 4 modules:
     \item \textbf{Forward Transform (\texttt{Forward.lean}):} We specify a mathematically standard formula \texttt{nttAt} that iterates over the indices using summations. Then, we implement \texttt{forwardImpl}, which performs a bit-reversal permutation on the input array, followed by $\log_2(N)$ iterative radix-2 butterfly stages in place. We proved that this optimized implementation is equivalent to the specification (\texttt{forwardImpl\_correct}).
     \item \textbf{Inverse Transform (\texttt{Inverse.lean}):} We implement the discrete inverse NTT using a similar stage-based iterative routine, but substituting the root of unity with $\omega^{-1}$, and explicitly applying the $N^{-1}$ scaling factor \texttt{normalize} operation at the end of the pipeline. We proved the correctness of the inverse transform (\texttt{inverseImpl\_correct}) by showing it behaves as the mathematical inverse.
     \item \textbf{Fast Multiplication (\texttt{FastMul.lean}):} Fast polynomial multiplication operates by truncating the polynomials into the appropriate vector shape, performing the forward NTT on both, multiplying pointwise in the evaluation domain (yielding complexity $O(N)$), and then reverting via the inverse NTT. We proved that under the condition that the domain is large enough (\texttt{Domain.fits}), the fast multiplication implementation is mathematically equivalent to standard polynomial multiplication (\texttt{fastMulImpl\_eq\_mul}).
-    \item \textbf{Low Product (\texttt{FastMulLow.lean}):} We implemented an NTT-backed context for computing low-degree coefficients of polynomial multiplication. It truncates inputs to a requested precision, performs fast multiplication when a fitting domain exists, and falls back to a low-convolution implementation otherwise.
-    \item \textbf{Concrete Domains (\texttt{BabyBear.lean}, \texttt{KoalaBear.lean}):} We instanced concrete radix-2 NTT domains over the BabyBear and KoalaBear prime fields. These modules verify that the respective domain sizes are nonzero in the field and construct the necessary roots of unity tables.
 \end{itemize}
 
 A critical aspect of our methodology is the division between ``spec'' functions (e.g., \texttt{forwardSpec}, \texttt{fastMulSpec}) and ``impl'' functions (e.g., \texttt{forwardImpl}, \texttt{fastMulImpl}). The spec functions map closely to standard mathematical texts, whereas the impl functions map to fast executing code. We successfully proved the core correctness theorems, including \texttt{forwardImpl\_correct}, \texttt{inverseImpl\_correct}, and \texttt{fastMulImpl\_eq\_mul}. The proof architecture bridges the gap between spec and impl functions using a multi-layered invariant structure:
@@ -175,7 +173,7 @@ The \texttt{Forward} transform evaluates initial coefficient arrays at defined r
 \section{System Design}
 Standard Object-Oriented Class diagrams are \textbf{inapplicable} as Lean 4 heavily utilizes functional programming paradigms and disjoint module namespaces. However, module dependency diagrams are strictly \textbf{applicable} to illustrate the hierarchical import boundaries required for compilation. 
 
-The system architecture flows from the base mathematical domain parameters up to the finalized fast multiplication algorithm. As shown below, the shared transform logic is decoupled into \texttt{Transform.lean}, which is consumed by the direction-specific modules \texttt{Forward.lean} and \texttt{Inverse.lean}. At the top, \texttt{FastMul.lean} wires them into a unified multiplication interface, and \texttt{FastMulLow.lean} extends this with low-degree precision contexts. Concrete field domains like \texttt{BabyBear.lean} and \texttt{KoalaBear.lean} build directly on top of the base \texttt{Domain.lean} configurations.
+The system architecture flows from the base mathematical domain parameters up to the finalized fast multiplication algorithm. As shown below, the shared transform logic is decoupled into \texttt{Transform.lean}, which is consumed by the direction-specific modules \texttt{Forward.lean} and \texttt{Inverse.lean}. At the top, \texttt{FastMul.lean} wires them into a unified multiplication interface, while treating \texttt{Domain.lean} as the foundational typeclass root.
 
 \begin{figure}[h]
     \centering
@@ -190,7 +188,6 @@ The system architecture flows from the base mathematical domain parameters up to
         \node[box, below left=1.2cm and -0.8cm of transform] (forward) {\textbf{Forward.lean} \\ \small Forward NTT \& Proofs};
         \node[box, below right=1.2cm and -0.8cm of transform] (inverse) {\textbf{Inverse.lean} \\ \small INTT \& Proofs};
         \node[box, below=3.6cm of transform] (fastmul) {\textbf{FastMul.lean} \\ \small Pointwise Mul \& FastMul};
-        \node[box, below=1.2cm of fastmul] (fastmullow) {\textbf{FastMulLow.lean} \\ \small Low-Degree Product Context};
 
         % Arrows
         \draw[arrow] (domain) -- (transform);
@@ -198,7 +195,6 @@ The system architecture flows from the base mathematical domain parameters up to
         \draw[arrow] (transform) -- (inverse);
         \draw[arrow] (forward) -- (fastmul);
         \draw[arrow] (inverse) -- (fastmul);
-        \draw[arrow] (fastmul) -- (fastmullow);
     \end{tikzpicture}
     \caption{Module Dependency Graph for the NTT Pipeline}
     \label{fig:module_dependencies}
@@ -210,7 +206,7 @@ The system architecture flows from the base mathematical domain parameters up to
 \chapter{IMPLEMENTATION AND TESTING}
 \section{Implementation}
 The implementation translates the specification of the Number-Theoretic Transform into a set of executable Lean 4 functions. A foundational decision in our implementation was to enforce a strict Trusted Code Base (TCB) policy. Mathematical propositions are encoded directly, and no \texttt{native\_decide} calls are dispatched. 
-The transform is structured through a parameterized \texttt{Domain} structure over abstract fields, with concrete tables instantiated over the \texttt{KoalaBear} and \texttt{BabyBear} finite field domains. The forward and inverse algorithms feature an in-place, iterative radix-2 butterfly stage function. Bit-reversal permutations ensure that the memory evaluation graph stays bounded to $O(N \log N)$ complexity without sacrificing functional purity.
+The transform is structured through a parameterized \texttt{Domain} structure over abstract fields, with current tests and benchmarks instantiated over the \texttt{KoalaBear} finite field domain. The forward and inverse algorithms feature an in-place, iterative radix-2 butterfly stage function. Bit-reversal permutations ensure that the memory evaluation graph stays bounded to $O(N \log N)$ complexity without sacrificing functional purity.
 
 \section{Testing}
 Verification is twofold: establishing kernel-level mathematical correctness bounds, which we have fully achieved by proving that the implementation is equivalent to the mathematical specification, alongside maintaining robust runtime unit tests to evaluate functional correctness. Our test suites, located within the \texttt{CompPolyTests} namespace, run automated checks over polynomial multiplication algorithms. We execute extensive comparisons between our iterative \texttt{fastMulImpl} and a baseline brute-force polynomial product to empirically validate that \texttt{fastMulImpl D p q = p * q} across numerous configurations, preventing code regressions and confirming functional soundness.
